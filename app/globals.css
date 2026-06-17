@@ -3,7 +3,7 @@
   --panel: #ffffff;
   --panel-muted: #f6f6f4;
   --text: #111111;
-  --muted: #777a80;
+  --muted: #4f5660;
   --border: #ececf0;
   --accent: #111111;
   --accent-strong: #111111;
@@ -125,6 +125,10 @@ select {
   padding: 24px 28px 40px 0;
 }
 
+.mobile-topbar {
+  display: none;
+}
+
 .page {
   margin: 0 auto;
   max-width: 980px;
@@ -162,6 +166,7 @@ h3 {
 .page-subtitle {
   color: var(--muted);
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.5;
   margin: 8px 0 0;
   max-width: 620px;
@@ -434,6 +439,17 @@ h3 {
 
   .main {
     padding: 18px 14px calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-topbar {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    margin: 2px 0 18px;
+  }
+
+  .mobile-topbar .wordmark {
+    font-size: 27px;
   }
 
   .page {

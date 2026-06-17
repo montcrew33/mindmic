@@ -40,7 +40,16 @@ export default function DashboardLayout({
           })}
         </nav>
       </aside>
-      <main className="main">{children}</main>
+      <main className="main">
+        <header className="mobile-topbar" aria-label="MindMic">
+          <span className="wordmark">
+            <span className="wordmark-mind">Mind</span>
+            <span className="wordmark-divider" aria-hidden="true" />
+            <span className="wordmark-mic">Mic</span>
+          </span>
+        </header>
+        {children}
+      </main>
     </div>
   );
 }
