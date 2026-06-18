@@ -15,6 +15,7 @@ export default async function RecordPage({
     .from("calendar_events")
     .select("id,title,starts_at")
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .gte("starts_at", new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString())
     .order("starts_at", { ascending: true })
     .limit(30);

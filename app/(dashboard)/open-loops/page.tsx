@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { setOpenLoopStatus } from "@/app/actions";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { normalizeSearchTerm } from "@/lib/search/content";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
@@ -22,10 +23,11 @@ type SourceNoteRow = {
 export default async function OpenLoopsPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, status } = await searchParams;
   const searchTerm = normalizeSearchTerm(q ?? "");
+  const statusFilter = status === "done" ? "done" : status === "all" ? "all" : "open";
   const userId = await getCurrentAppUserId();
   const supabase = createServiceSupabaseClient();
   let query = supabase
@@ -34,6 +36,10 @@ export default async function OpenLoopsPage({
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (statusFilter !== "all") {
+    query = query.eq("status", statusFilter);
+  }
 
   if (searchTerm) {
     query = query.ilike("description", `%${searchTerm}%`);
@@ -74,10 +80,23 @@ export default async function OpenLoopsPage({
           name="q"
           placeholder="Search follow-ups..."
         />
+        <input name="status" type="hidden" value={statusFilter} />
         <button className="button secondary" type="submit">
           Search
         </button>
       </form>
+
+      <div className="pill-row">
+        <Link className={`pill ${statusFilter === "open" ? "active" : ""}`} href="/open-loops">
+          Open
+        </Link>
+        <Link className={`pill ${statusFilter === "done" ? "active" : ""}`} href="/open-loops?status=done">
+          Done
+        </Link>
+        <Link className={`pill ${statusFilter === "all" ? "active" : ""}`} href="/open-loops?status=all">
+          All
+        </Link>
+      </div>
 
       <div className="panel">
         {(loops ?? []).length === 0 ? (
@@ -96,11 +115,25 @@ export default async function OpenLoopsPage({
                   {loop.status} · {new Date(loop.created_at).toLocaleDateString()}
                 </p>
                 {sourceNote?.summary ? <p>{sourceNote.summary}</p> : null}
-                {noteId ? (
-                  <Link className="button secondary" href={`/notes/${noteId}`}>
-                    View source note
-                  </Link>
-                ) : null}
+                <div className="pill-row">
+                  {noteId ? (
+                    <Link className="button secondary" href={`/notes/${noteId}`}>
+                      View source note
+                    </Link>
+                  ) : null}
+                  <form action={setOpenLoopStatus}>
+                    <input name="loopId" type="hidden" value={loop.id} />
+                    <input name="noteId" type="hidden" value={noteId ?? ""} />
+                    <input
+                      name="status"
+                      type="hidden"
+                      value={loop.status === "done" ? "open" : "done"}
+                    />
+                    <button className="button ghost" type="submit">
+                      {loop.status === "done" ? "Reopen" : "Mark done"}
+                    </button>
+                  </form>
+                </div>
               </article>
             );
           })

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Mic } from "lucide-react";
+import { deleteNote, setOpenLoopStatus } from "@/app/actions";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
@@ -55,6 +56,12 @@ export default async function NoteDetailPage({
           <Link className="button secondary" href="/notes">
             All notes
           </Link>
+          <form action={deleteNote}>
+            <input name="noteId" type="hidden" value={note.id} />
+            <button className="button danger" type="submit">
+              Delete note
+            </button>
+          </form>
           <Link className="button" href="/record">
             <Mic size={18} aria-hidden="true" />
             Record another
@@ -110,6 +117,18 @@ export default async function NoteDetailPage({
                   {loop.status}
                   {loop.due_hint ? ` · ${loop.due_hint}` : ""}
                 </p>
+                <form action={setOpenLoopStatus}>
+                  <input name="loopId" type="hidden" value={loop.id} />
+                  <input name="noteId" type="hidden" value={note.id} />
+                  <input
+                    name="status"
+                    type="hidden"
+                    value={loop.status === "done" ? "open" : "done"}
+                  />
+                  <button className="button ghost" type="submit">
+                    {loop.status === "done" ? "Reopen" : "Mark done"}
+                  </button>
+                </form>
               </div>
             ))
           )}

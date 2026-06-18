@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mic } from "lucide-react";
+import { hideCalendarEvent } from "@/app/actions";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
@@ -10,6 +11,7 @@ export default async function TodayPage() {
     .from("calendar_events")
     .select("id,title,starts_at,ends_at,attendees,meeting_url")
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .gte("starts_at", new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString())
     .order("starts_at", { ascending: true })
     .limit(12);
@@ -57,9 +59,17 @@ export default async function TodayPage() {
                     {new Date(event.starts_at).toLocaleString()} ·{" "}
                     {Array.isArray(event.attendees) ? event.attendees.length : 0} people
                   </p>
-                  <Link className="button secondary" href={`/record?eventId=${event.id}`}>
-                    Dictate private note
-                  </Link>
+                  <div className="pill-row">
+                    <Link className="button secondary" href={`/record?eventId=${event.id}`}>
+                      Dictate private note
+                    </Link>
+                    <form action={hideCalendarEvent}>
+                      <input name="eventId" type="hidden" value={event.id} />
+                      <button className="button ghost" type="submit">
+                        Hide
+                      </button>
+                    </form>
+                  </div>
                 </article>
               ))
             )}

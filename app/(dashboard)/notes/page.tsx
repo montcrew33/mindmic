@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { deleteNote } from "@/app/actions";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { normalizeSearchTerm } from "@/lib/search/content";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
@@ -72,8 +73,8 @@ export default async function NotesPage({
             const noteType = note.note_type ?? note.kind;
 
             return (
-              <Link className="card note-card" href={`/notes/${note.id}`} key={note.id}>
-                <article>
+              <article className="card note-card" key={note.id}>
+                <Link href={`/notes/${note.id}`}>
                   <strong>{note.summary ?? "Untitled note"}</strong>
                   <p className="muted">
                     {noteTypeLabels[noteType] ?? "Note"} ·{" "}
@@ -85,8 +86,19 @@ export default async function NotesPage({
                       {new Date(calendarEvent.starts_at).toLocaleString()}
                     </p>
                   ) : null}
-                </article>
-              </Link>
+                </Link>
+                <div className="pill-row">
+                  <Link className="button secondary" href={`/notes/${note.id}`}>
+                    View note
+                  </Link>
+                  <form action={deleteNote}>
+                    <input name="noteId" type="hidden" value={note.id} />
+                    <button className="button danger" type="submit">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </article>
             );
           })
         )}

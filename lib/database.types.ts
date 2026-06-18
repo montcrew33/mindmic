@@ -90,6 +90,7 @@ export type Database = {
           created_at: string
           description: string | null
           ends_at: string | null
+          hidden_at: string | null
           id: string
           location: string | null
           meeting_url: string | null
@@ -106,6 +107,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           ends_at?: string | null
+          hidden_at?: string | null
           id?: string
           location?: string | null
           meeting_url?: string | null
@@ -122,6 +124,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           ends_at?: string | null
+          hidden_at?: string | null
           id?: string
           location?: string | null
           meeting_url?: string | null
