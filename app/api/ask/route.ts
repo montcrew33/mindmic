@@ -42,12 +42,58 @@ export async function POST(request: Request) {
       });
     });
 
+  const tokens = searchTokens(query);
+  if (tokens.length > 0) {
+    const chunkFallback = await supabase
+      .from("note_chunks")
+      .select("content,notes(id,summary,created_at)")
+      .eq("user_id", userId)
+      .or(tokens.map((token) => `content.ilike.%${token}%`).join(","))
+      .limit(6);
+
+    chunkFallback.data?.forEach((chunk) => {
+      const note = Array.isArray(chunk.notes) ? chunk.notes[0] : chunk.notes;
+      const noteId = note?.id ?? "unknown";
+      if (sources.has(noteId)) {
+        return;
+      }
+
+      sources.set(noteId, {
+        noteId,
+        noteDate: note?.created_at ?? "unknown date",
+        title: note?.summary ?? "Saved note",
+        content: chunk.content
+      });
+    });
+
+    const entityFallback = await supabase
+      .from("note_entities")
+      .select("value,note_id,notes(id,summary,created_at,note_chunks(content))")
+      .eq("user_id", userId)
+      .or(tokens.map((token) => `value.ilike.%${token}%`).join(","))
+      .limit(6);
+
+    entityFallback.data?.forEach((entity) => {
+      const note = Array.isArray(entity.notes) ? entity.notes[0] : entity.notes;
+      if (!note?.id || sources.has(note.id)) {
+        return;
+      }
+
+      const chunk = Array.isArray(note.note_chunks) ? note.note_chunks[0] : null;
+      sources.set(note.id, {
+        noteId: note.id,
+        noteDate: note.created_at,
+        title: note.summary ?? "Saved note",
+        content: [`Matched entity: ${entity.value}`, chunk?.content].filter(Boolean).join("\n\n")
+      });
+    });
+  }
+
   const asksAboutOpenLoops = /\b(task|tasks|todo|follow|follow-up|open loop|remember)\b/i.test(
     query
   );
 
   if (asksAboutOpenLoops || sources.size === 0) {
-    const tokens = searchTokens(query);
     let loopQuery = supabase
       .from("open_loops")
       .select("description,note_id,notes(id,summary,created_at,note_chunks(content))")
