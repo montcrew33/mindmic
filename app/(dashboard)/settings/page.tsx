@@ -1,7 +1,23 @@
 import Link from "next/link";
 import { CalendarPlus } from "lucide-react";
+import { getCurrentAppUserId } from "@/lib/auth/current-user";
+import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
-export default function SettingsPage() {
+export default async function SettingsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ calendar?: string }>;
+}) {
+  const { calendar } = await searchParams;
+  const userId = await getCurrentAppUserId();
+  const supabase = createServiceSupabaseClient();
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("sync_status,last_synced_at")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .maybeSingle();
+
   return (
     <section className="page">
       <div className="page-header">
@@ -21,9 +37,20 @@ export default function SettingsPage() {
             Calendar context helps the app attach notes to the right meeting, person,
             or project. Notes still work without it.
           </p>
+          {calendar === "error" ? (
+            <p className="muted">Google Calendar connection failed. Check your OAuth settings.</p>
+          ) : null}
+          {connection ? (
+            <p className="muted">
+              Status: {connection.sync_status}
+              {connection.last_synced_at
+                ? ` · Last synced ${new Date(connection.last_synced_at).toLocaleString()}`
+                : ""}
+            </p>
+          ) : null}
           <Link className="button" href="/api/calendar/google/start">
             <CalendarPlus size={18} aria-hidden="true" />
-            Connect Google Calendar
+            {connection ? "Reconnect Google Calendar" : "Connect Google Calendar"}
           </Link>
         </div>
 
