@@ -40,6 +40,12 @@ export default async function SettingsPage({
           {calendar === "error" ? (
             <p className="muted">Google Calendar connection failed. Check your OAuth settings.</p>
           ) : null}
+          {calendar === "not_configured" ? (
+            <p className="muted">
+              Google Calendar is not configured yet. Add the Google client ID, client
+              secret, and redirect URI in your environment variables.
+            </p>
+          ) : null}
           {connection ? (
             <p className="muted">
               Status: {connection.sync_status}
