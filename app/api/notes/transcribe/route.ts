@@ -4,6 +4,7 @@ import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { extractNoteMemory } from "@/lib/processing/process-note";
 import type { NoteKind } from "@/lib/processing/types";
+import { buildSearchableNoteContent } from "@/lib/search/content";
 import {
   DIRECT_TRANSCRIPTION_MAX_BYTES,
   HARD_MAX_SECONDS,
@@ -136,7 +137,12 @@ export async function POST(request: Request) {
   await serviceClient.from("note_chunks").insert({
     user_id: userId,
     note_id: note.id,
-    content: `${extraction.summary}\n\n${extraction.cleanedText}\n\n${transcript}`
+    content: buildSearchableNoteContent({
+      summary: extraction.summary,
+      cleanedText: extraction.cleanedText,
+      transcript,
+      extraction
+    })
   });
 
   return NextResponse.json({ noteId: note.id });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
 import { extractNoteMemory } from "@/lib/processing/process-note";
 import type { NoteKind } from "@/lib/processing/types";
+import { buildSearchableNoteContent } from "@/lib/search/content";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
 const bodySchema = z.object({
@@ -95,7 +96,12 @@ export async function POST(request: Request) {
   await serviceClient.from("note_chunks").insert({
     user_id: userId,
     note_id: note.id,
-    content: `${extraction.summary}\n\n${extraction.cleanedText}\n\n${text}`
+    content: buildSearchableNoteContent({
+      summary: extraction.summary,
+      cleanedText: extraction.cleanedText,
+      transcript: text,
+      extraction
+    })
   });
 
   return NextResponse.json({ noteId: note.id });

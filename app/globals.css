@@ -292,6 +292,27 @@ h3 {
   resize: vertical;
 }
 
+.search-bar {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+}
+
+.search-input {
+  border: 0;
+  color: var(--text);
+  min-height: 36px;
+  outline: none;
+  width: 100%;
+}
+
 .pill-row {
   display: flex;
   flex-wrap: wrap;

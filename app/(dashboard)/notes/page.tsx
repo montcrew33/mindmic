@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { getCurrentAppUserId } from "@/lib/auth/current-user";
+import { normalizeSearchTerm } from "@/lib/search/content";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
 const noteTypeLabels: Record<string, string> = {
@@ -9,15 +10,29 @@ const noteTypeLabels: Record<string, string> = {
   free_note: "Free note"
 };
 
-export default async function NotesPage() {
+export default async function NotesPage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const searchTerm = normalizeSearchTerm(q ?? "");
   const userId = await getCurrentAppUserId();
   const supabase = createServiceSupabaseClient();
-  const { data: notes } = await supabase
+  let query = supabase
     .from("notes")
     .select("id,summary,note_type,kind,created_at,calendar_events(title,starts_at)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(30);
+
+  if (searchTerm) {
+    query = query.or(
+      `summary.ilike.%${searchTerm}%,cleaned_note.ilike.%${searchTerm}%,raw_transcript.ilike.%${searchTerm}%`
+    );
+  }
+
+  const { data: notes } = await query;
 
   return (
     <section className="page">
@@ -26,19 +41,29 @@ export default async function NotesPage() {
           <p className="eyebrow">Source of truth</p>
           <h2 className="page-title">Notes</h2>
           <p className="page-subtitle">
-            Recent dictated notes. Search and filters come later; for now this is the
-            source record behind open loops and Ask.
+            Search recent dictated notes by summary, cleaned note, or transcript.
           </p>
         </div>
-        <button className="button secondary" type="button" disabled>
-          <Search size={18} aria-hidden="true" />
-          Search later
-        </button>
       </div>
+
+      <form className="search-bar" action="/notes">
+        <Search size={18} aria-hidden="true" />
+        <input
+          className="search-input"
+          defaultValue={searchTerm}
+          name="q"
+          placeholder="Search notes, people, projects..."
+        />
+        <button className="button secondary" type="submit">
+          Search
+        </button>
+      </form>
 
       <div className="panel">
         {(notes ?? []).length === 0 ? (
-          <p className="muted">No notes yet. Record one to create the first source note.</p>
+          <p className="muted">
+            {searchTerm ? "No notes matched that search." : "No notes yet. Record one to create the first source note."}
+          </p>
         ) : (
           notes?.map((note) => {
             const calendarEvent = Array.isArray(note.calendar_events)
