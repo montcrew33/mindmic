@@ -27,15 +27,15 @@ type GoogleEventsResponse = {
   items?: GoogleCalendarEvent[];
 };
 
-export async function exchangeGoogleCodeForTokens(code: string) {
+export async function exchangeGoogleCodeForTokens(input: { code: string; redirectUri: string }) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      code,
+      code: input.code,
       client_id: requireEnv("GOOGLE_CLIENT_ID"),
       client_secret: requireEnv("GOOGLE_CLIENT_SECRET"),
-      redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
+      redirect_uri: input.redirectUri,
       grant_type: "authorization_code"
     })
   });

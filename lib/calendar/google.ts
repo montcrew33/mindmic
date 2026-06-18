@@ -2,10 +2,14 @@ import { env, requireEnv } from "@/lib/env";
 
 const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
-export function buildGoogleCalendarAuthUrl(state: string) {
+export function googleCalendarCallbackUrl(requestUrl: string) {
+  return new URL("/api/calendar/google/callback", requestUrl).toString();
+}
+
+export function buildGoogleCalendarAuthUrl(input: { state: string; redirectUri: string }) {
   const params = new URLSearchParams({
     client_id: requireEnv("GOOGLE_CLIENT_ID"),
-    redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
+    redirect_uri: input.redirectUri,
     response_type: "code",
     scope: [
       "openid",
@@ -15,12 +19,12 @@ export function buildGoogleCalendarAuthUrl(state: string) {
     ].join(" "),
     access_type: "offline",
     prompt: "consent",
-    state
+    state: input.state
   });
 
   return `${googleAuthUrl}?${params.toString()}`;
 }
 
 export function isGoogleCalendarConfigured() {
-  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI);
+  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 }

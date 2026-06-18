@@ -3,6 +3,7 @@ import {
   exchangeGoogleCodeForTokens,
   syncPrimaryGoogleCalendar
 } from "@/lib/calendar/sync";
+import { googleCalendarCallbackUrl } from "@/lib/calendar/google";
 
 export async function handleGoogleCalendarCallback(request: Request) {
   const url = new URL(request.url);
@@ -19,7 +20,10 @@ export async function handleGoogleCalendarCallback(request: Request) {
   }
 
   try {
-    const tokens = await exchangeGoogleCodeForTokens(code);
+    const tokens = await exchangeGoogleCodeForTokens({
+      code,
+      redirectUri: googleCalendarCallbackUrl(request.url)
+    });
     const result = await syncPrimaryGoogleCalendar({ userId, tokens });
     return NextResponse.redirect(
       new URL(`/today?calendar=synced&events=${result.synced}`, request.url)
