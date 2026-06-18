@@ -5,6 +5,23 @@ import { searchTokens } from "@/lib/search/content";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { answerFromSources } from "@/lib/search/ask";
 
+type OpenLoopSearchRow = {
+  description: string;
+  note_id: string | null;
+  source_note_id: string | null;
+};
+
+type NoteSearchRow = {
+  id: string;
+  summary: string | null;
+  created_at: string;
+};
+
+type NoteChunkRow = {
+  note_id: string;
+  content: string;
+};
+
 const bodySchema = z.object({
   question: z.string().min(1).max(1000)
 });
@@ -96,7 +113,7 @@ export async function POST(request: Request) {
   if (asksAboutOpenLoops || sources.size === 0) {
     let loopQuery = supabase
       .from("open_loops")
-      .select("description,note_id,notes(id,summary,created_at,note_chunks(content))")
+      .select("description,note_id,source_note_id")
       .eq("user_id", userId)
       .limit(6);
 
@@ -106,21 +123,44 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: loops } = await loopQuery;
-    loops?.forEach((loop) => {
-      const note = Array.isArray(loop.notes) ? loop.notes[0] : loop.notes;
-      if (!note?.id || sources.has(note.id)) {
-        return;
-      }
+    const { data: loops } = await loopQuery.returns<OpenLoopSearchRow[]>();
+    const noteIds = Array.from(
+      new Set((loops ?? []).map((loop) => loop.note_id ?? loop.source_note_id).filter(Boolean))
+    ) as string[];
 
-      const chunk = Array.isArray(note.note_chunks) ? note.note_chunks[0] : null;
-      sources.set(note.id, {
-        noteId: note.id,
-        noteDate: note.created_at,
-        title: note.summary ?? "Saved note",
-        content: [`Open loop: ${loop.description}`, chunk?.content].filter(Boolean).join("\n\n")
+    if (noteIds.length > 0) {
+      const [{ data: notes }, { data: noteChunks }] = await Promise.all([
+        supabase
+          .from("notes")
+          .select("id,summary,created_at")
+          .in("id", noteIds)
+          .returns<NoteSearchRow[]>(),
+        supabase
+          .from("note_chunks")
+          .select("note_id,content")
+          .in("note_id", noteIds)
+          .returns<NoteChunkRow[]>()
+      ]);
+
+      const notesById = new Map((notes ?? []).map((note) => [note.id, note]));
+      const chunksByNoteId = new Map((noteChunks ?? []).map((chunk) => [chunk.note_id, chunk]));
+
+      loops?.forEach((loop) => {
+        const noteId = loop.note_id ?? loop.source_note_id;
+        const note = noteId ? notesById.get(noteId) : null;
+        if (!note?.id || sources.has(note.id)) {
+          return;
+        }
+
+        const chunk = chunksByNoteId.get(note.id);
+        sources.set(note.id, {
+          noteId: note.id,
+          noteDate: note.created_at,
+          title: note.summary ?? "Saved note",
+          content: [`Open loop: ${loop.description}`, chunk?.content].filter(Boolean).join("\n\n")
+        });
       });
-    });
+    }
   }
 
   const sourceList = Array.from(sources.values()).slice(0, 6);
